@@ -41,7 +41,7 @@ def run(args):
         if args.example:
             download_pretrained(args.example)
         else:
-            for example in ["cnn", "gan", "simple_ssd", "textcnn"]:
+            for example in ["cnn", "gan", "simple_ssd", "textcnn", "3dcnn"]:
                 download_pretrained(example)
         has_effect = True
 

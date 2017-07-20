@@ -3,10 +3,13 @@
 import logging
 
 import tensorflow as tf
-from data import nodules
-from data import utilities
+from data import nodules, utilities
 
+from . import resnet_utils_3d as utils
 from . import resnet_v2_3d as resnet
+
+slim = tf.contrib.slim
+
 
 logging.basicConfig(level=logging.INFO)
 logging.basicConfig(level=logging.DEBUG)
@@ -14,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 # Config:
 BATCH_SIZE = 32
-NUM_EPOCHS = 10
-LEARNING_RATE = 0.00005
+NUM_EPOCHS = 1.5
+LEARNING_RATE = 0.0001
 OPTIMIZER = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
 DATASET_SIZE = 13400
 
@@ -28,11 +31,17 @@ n_input = tf.placeholder(tf.float32, shape=(None, 32,32,32,1), name="input")
 n_label = tf.placeholder(tf.int64, shape=(None,), name="label")
 
 # Build the model
-net, end_points = resnet.resnet_v2_18(n_input, num_classes=2, is_training=True)
+with slim.arg_scope(resnet.resnet_arg_scope()):
+    net, end_points = resnet.resnet_v2_18(n_input, num_classes=2, is_training=True)
 
 # Define the loss function
 loss = tf.reduce_sum(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=net, labels=n_label, name="softmax"))
 accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(net, axis=1), n_label), tf.float32))
+
+reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+reg_loss = tf.add_n(reg_losses)
+
+loss += reg_loss
 
 # Add summaries to track the state of training:
 tf.summary.scalar('summary/loss', loss)
@@ -45,10 +54,12 @@ summaries = tf.summary.merge_all()
 global_step = tf.Variable(0, trainable=False, name='global_step')
 inc_global_step = tf.assign(global_step, global_step+1)
 
-train_op = OPTIMIZER.minimize(loss)
+update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+with tf.control_dependencies(update_ops):
+    train_op = OPTIMIZER.minimize(loss)
 
 logger.info("Loading training supervisor...")
-sv = tf.train.Supervisor(logdir="3dcnn/train_logs/", global_step=global_step, summary_op=None, save_model_secs=180)
+sv = tf.train.Supervisor(logdir="3dcnn/train_logs/", global_step=global_step, summary_op=None, save_model_secs=30)
 logger.info("Done!")
 
 with sv.managed_session() as sess:
@@ -59,7 +70,7 @@ with sv.managed_session() as sess:
     logwriter = tf.summary.FileWriter("3dcnn/train_logs/", sess.graph)
     logwriter.add_session_log(tf.SessionLog(status=tf.SessionLog.START), global_step=batch)
 
-    logger.info("Starting training from batch {} to {}. Saving model every {}s.".format(batch, NUM_BATCHES, 180))
+    logger.info("Starting training from batch {} to {}. Saving model every {}s.".format(batch, NUM_BATCHES, 30))
 
     while not sv.should_stop():
         if batch >= NUM_BATCHES:

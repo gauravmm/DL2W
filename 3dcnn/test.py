@@ -11,6 +11,8 @@ logging.basicConfig(level=logging.INFO)
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+slim = tf.contrib.slim
+
 # Config:
 BATCH_SIZE = 32
 
@@ -22,7 +24,8 @@ n_input = tf.placeholder(tf.float32, shape=nodules.get_shape_input(), name="inpu
 n_label = tf.placeholder(tf.int64, shape=nodules.get_shape_label(), name="label")
 
 # Build the model
-net, end_points = resnet.resnet_v2_18(n_input, num_classes=2, is_training=False)
+with slim.arg_scope(resnet.resnet_arg_scope()):
+    net, end_points = resnet.resnet_v2_18(n_input, num_classes=2, is_training=False)
 softmax = tf.nn.softmax(net)
 accuracy = tf.reduce_sum(tf.cast(tf.equal(tf.argmax(softmax, axis=1), n_label), tf.int32))
 global_step = tf.Variable(0, trainable=False, name='global_step')
