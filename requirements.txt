@@ -1,3 +1,6 @@
 tensorflow
 numpy
 urllib3
+gensim
+pillow
+regex
