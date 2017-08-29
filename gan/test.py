@@ -23,6 +23,7 @@ tf.summary.image('summary/generator', generator_visualisation, max_outputs=8)
 
 sv = tf.train.Supervisor(logdir="gan/train_logs/", save_summaries_secs=None, save_model_secs=None)
 
+batch = 0
 with sv.managed_session() as sess:
     while not sv.should_stop():
         if batch > 0 and batch % 100 == 0:
@@ -30,3 +31,5 @@ with sv.managed_session() as sess:
 
         inp, _ = next(data_generator)
         sess.run(generator_visualisation)
+        
+        batch += 1
