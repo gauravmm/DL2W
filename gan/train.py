@@ -104,8 +104,8 @@ with sv.managed_session() as sess:
 
         inp, _ = next(data_generator)
         (_, sum_dis) = sess.run((train_discriminator, summary_discriminator), feed_dict={input_placeholder: inp})
-        logwriter.add_summary(sum_dis)
+        logwriter.add_summary(sum_dis, batch)
         (_, sum_gen) = sess.run((train_generator, summary_generator))
-        logwriter.add_summary(sum_gen)
+        logwriter.add_summary(sum_gen, batch)
 
         batch += 1
